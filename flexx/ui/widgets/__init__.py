@@ -20,3 +20,5 @@ from ._canvas import CanvasWidget
 from ._color import ColorSelectWidget
 from ._media import ImageWidget, VideoWidget, YoutubeWidget
 from ._html import Div, html
+from ._anchor import Anchor
+from ._router import Router, Link, Placeholder
