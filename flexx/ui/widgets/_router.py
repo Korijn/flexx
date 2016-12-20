@@ -1,27 +1,39 @@
-from flexx import ui, app
+from ... import app
+from . import Widget, Anchor
 
 
 class Router(app.Model):
+    """Does pattern matching on paths to manage a hierarchy of widgets."""
+
     def init(self):
         self.routes = {}
-        self._route_context_stack = [self]
+        self.route_context_stack = [self]
 
     def register(self, route):
-        parent = self._route_context_stack[-1]
+        parent = self.route_context_stack[-1]
         parent.routes[route.path] = route
 
     def push_route_context(self, route):
-        self._route_context_stack.append(route)
+        self.route_context_stack.append(route)
 
     def pop_route_context(self):
-        self._route_context_stack.pop()
+        self.route_context_stack.pop()
+
+    def register_placeholder(self, placeholder):
+        # stub method
+        pass
 
 
 class Route:
+    """
+    Links a path pattern to a widget class. Should be used as a context manager for convenient declaration of
+    the widget hierarchy.
+    """
+
     def __init__(self, path, widget):
         self.router = app.get_active_model()
         if not isinstance(self.router, Router):
-            raise ValueError("All Route objects must be instantiated in the context of a Router.")
+            raise ValueError("All Routes must be instantiated in the context of a Router.")
 
         self.path = path
         self.widget = widget
@@ -37,36 +49,36 @@ class Route:
 
 
 class IndexRoute(Route):
+    """When a Router has no matching paths in its Routes, an IndexRoute is its fallback; it is the default Route."""
+
     def __init__(self, widget):
         super().__init__(None, widget)
 
 
-class Placeholder(ui.Widget):
-    pass
+class Placeholder(Widget):
+    """The Placeholder serves as an entry-point for the Router to insert its widgets into the children property."""
+
+    def init(self):
+        # this happens at runtime, so the Router will have to put itself on the active model stack when it instantiates
+        # the widget holding Placeholder
+        self.router_stack = tuple(filter(lambda m: isinstance(m, Router), app.get_active_models()))
+        if not self.router_stack:
+            raise ValueError("All Placeholders must be instantiated in the context of a Router.")
+
+        self.router = self.router_stack[-1]
+
+        self.router.register_placeholder(self)
 
 
-class Link(ui.Widget):
-    pass
+class Link(Anchor):
+    """A specialized Anchor tag that doesn't interact with the URL/browser directly but rather with the Router."""
+    def init(self):
+        # this happens at runtime, so the Router will have to put itself on the active model stack when it instantiates
+        # the widget holding Link
+        self.router_stack = tuple(filter(lambda m: isinstance(m, Router), app.get_active_models()))
+        if not self.router_stack:
+            raise ValueError("All Links must be instantiated in the context of a Router.")
+
+        self.router = self.router_stack[-1]
 
 
-class Foo(ui.Widget):
-    pass
-
-
-if __name__ == '__main__':
-    from flexx import app
-
-    class MyApp(ui.Widget):
-        def init(self):
-            with Router():
-                with Route(path="/", widget=Foo):
-                    IndexRoute(widget=Foo)
-                    Route(path="about", widget=Foo)
-                    with Route(path="tasks", widget=Foo):
-                        Route(path="/:task-id", widget=Foo)
-                    Route(path="contact", widget=Foo)
-
-
-    m = app.App(MyApp)
-    m.launch('xul')
-    app.run()

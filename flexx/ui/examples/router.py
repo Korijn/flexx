@@ -6,28 +6,22 @@ An interactive router demo.
 from flexx import app, ui
 
 
-class RedWidget(ui.Widget):
+class Foo(ui.Widget):
+    pass
+
+
+class MyApp(ui.Widget):
     def init(self):
-        self.style = 'background:#f00'
-        self.title = 'red'
+        with ui.Router():
+            with ui.Route(path="/", widget=Foo):
+                ui.IndexRoute(widget=Foo)
+                ui.Route(path="about", widget=Foo)
+                with ui.Route(path="tasks", widget=Foo):
+                    ui.Route(path="/:task-id", widget=Foo)
+                    ui.Route(path="contact", widget=Foo)
 
-
-class GreenWidget(ui.Widget):
-    def init(self):
-        self.style = 'background:#0f0'
-        self.title = 'green'
-
-
-class Router(ui.Widget):
-    def init(self):
-        pass
-
-
-class Main(ui.Widget):
-    def init(self):
-        with Router() as self.router:
-            pass
 
 if __name__ == '__main__':
-    m = app.launch(Main, 'xul')
+    m = app.App(MyApp)
+    m.launch('chrome')
     app.run()
